@@ -35,7 +35,7 @@
 #time it should hold that temperature (soak time), the time it should take to
 #reach the desired temperature (ramp time), the number of times this location
 #should be performed (repeats) and the next step/location that should be
-#performed if the current location is fully excecuted (repeat location)
+#performed if the current location is fully excecuted (repeat location).
 #These 8 steps are the same as the 8 slots in the graphical interface that is
 #provided by TE Technologies INC.
 #You can start the excecution of the 8 location by calling "start_control()",
@@ -64,7 +64,7 @@ def find_address(identifier = None):
         identify a serial connection as long as it is unique. See the pyserial
         list_ports.grep() function for more details.
     Returns:
-    The function prints the address.
+    The function prints the address and serial number of the FTDI chip.
     `port`(obj): Retruns a pyserial port object. port.device stores the 
         address.
     
@@ -97,7 +97,10 @@ def find_address(identifier = None):
                 break
             print('    No port found. Try again.\n')
         print('Device address: {}'.format(port[0].device))
-        print('Device serial_number: {}'.format(port[0].serial_number))
+        try:
+            print('Device serial_number: {}'.format(port[0].serial_number))
+        except Exception:
+            print('Could not find serial number of device.')
     
     return port[0]
     
@@ -661,11 +664,13 @@ class TC720():
         `soak_time`(int): Time the temperature has to be kept at the target
             temperature. In seconds, max = 30000 seconds. 
             Actually it should be 32767, which is 0.5 * 2**16, but higher
-            somethimes gives checksum errors.
+            values gives checksum errors sometimes.
         `repeats`(int): Number of times the location has to be repeated. The
             program will cycle over all 8 locations in sequence and counts how 
             many times a location is performed. 
-            Warning: Strange behaviour
+            Warning: There is some strange behaviour if one of the locations has 
+            fewer repeats than the other locations, it will be excecuted as many
+            times as the location with the most. 
         `go_to`(int, None): If specified indicates the next location to excecute.
             if set to "None" it will default to the next location. If the
             location = 8, it will go to location 1. 
