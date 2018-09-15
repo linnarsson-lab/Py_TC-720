@@ -1,6 +1,6 @@
 ################################################################################
 #Python 3 package to control the TC-720 temperature controller from:
-#TE Technology INC. (https://tetech.com/)
+#TE Technology Inc. (https://tetech.com/)
 
 #Date: 7 September 2018
 #Author: Lars E. Borm
@@ -109,7 +109,7 @@ def find_address(identifier = None):
 
 class TC720():
     """
-    Class to control the TC-720 temperature controller from TE Technologies INC. 
+    Class to control the TC-720 temperature controller from TE Technology Inc. 
     
     """
     def __init__(self, address, name = 'TC-720', verbose = False):
