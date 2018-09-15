@@ -1,6 +1,6 @@
 # Py_TC-720
 Python library for the control of the [TC-720 temperature controller](https://tetech.com/product/tc-720/).  
-The TC-720 is a peltier based temperature control device made by [TE Technology INC.](https://tetech.com/) which can control the temperature with high presision and speed. The company provides a graphic user interface to control and monitor the TC-720. This package was written to make it possible to incorporate the TC-720 in projects that require automatic control of the TC-720.
+The TC-720 is a peltier based temperature control device made by [TE Technology Inc.](https://tetech.com/) which can control the temperature with high presision and speed. The company provides a graphic user interface to control and monitor the TC-720. This package was written to make it possible to incorporate the TC-720 in projects that require automatic control of the TC-720.
   
 The TC-720 has a large range of functions and settings. Most have been included in this code but not all, as they were too advanced or not relevant for our use. However, with this code and [Appendix B of the operating manual](https://tetech.com/product/tc-720/) (see under Manuals) it should be possible to easily write the desired functions (please contribute). 
 
