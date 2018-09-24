@@ -24,7 +24,7 @@
 
 #Then initialise the connection with the controller:
 #import Py_TC720
-#my_device = PyTC720.TC720(address, name='hotstuff', verbose=True)
+#my_device = Py_TC720.TC720(address, name='hotstuff', verbose=True)
 
 #The most usefull function is the "set_temp()" function, with which you can set
 #and hold a temperature for a long time.
