@@ -130,7 +130,7 @@ class TC720():
         self.verboseprint = print if self.verbose else lambda *a, **k: None
 
         #make connection with controller
-        self.ser = serial.Serial('COM20', timeout= 2, baudrate=230400, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE)
+        self.ser = serial.Serial(self.address, timeout= 2, baudrate=230400, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE)
         self.verboseprint('Made connection with temperature controller: {}'.format(self.name))
 
     #---------------------------------------------------------------------------
