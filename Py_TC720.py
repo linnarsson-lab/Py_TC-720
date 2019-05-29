@@ -406,7 +406,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         #Get soak temperature
@@ -430,7 +430,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         #Get ramp time
@@ -448,7 +448,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         #Get soak time
@@ -466,7 +466,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         #Get number of repeats
@@ -487,7 +487,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         #Get number of repeats
@@ -508,7 +508,7 @@ class TC720():
             Positive and negative values are possible.
         
         """
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         location_code = 'a' + str(location-1)
@@ -529,7 +529,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         #Set ramp time
@@ -546,7 +546,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         if type(time) != int or (1< time > 32768): #half 2**16
             raise ValueError('Invalid time: "{}", type: "{}. Must be a integer in the range 1-32768.'.format(location, type(location)))
@@ -570,7 +570,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         
         location_code = 'd' + str(location-1)
@@ -586,9 +586,9 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
-        if type(repeat_loc) != int or (1< repeat_loc > 8):
+        if type(repeat_loc) != int or not 1 <= repeat_loc <= 8:
             raise ValueError('Invalid repeat_loc: "{}", type: "{}. Must be a integer in the range 1-8.'.format(repeat_loc, type(repeat_loc)))
         
         location_code = 'e' + str(location-1)
@@ -677,7 +677,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
+        if type(location) != int or not 1 <= location <= 8:
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
 
         self.set_soak_temp(location, temp)
