@@ -687,7 +687,7 @@ class TC720():
         if go_to == None:
             l = [1,2,3,4,5,6,7,8]
             next_loc = l[((location)%8)]
-        elif type(go_to) != int or (1< repeat_loc > 8):
+        elif type(go_to) != int or not 1 <= go_to <= 8:
             raise ValueError('Invalid go_to: "{}", type: "{}". Must be a integer in the range 1-8.'.format(go_to, type(go_to)))
         else:
             next_loc = location + 100
