@@ -19,6 +19,6 @@ The TC-720 has a large range of functions and settings. Most have been included 
 
 # Programming a temperature cycle
 The controller has 8 'locations' that can hold information for a temperature cycle. You can program these using the `my_device.set_single_sequence()` function. For each location you need to specify the desired temperature (soak temp), the time it should take to reach the desired temperature (ramp time), the time it should hold that temperature (soak time), the number of times this location should be performed (repeats) and the next step/location that should be performed if the current location is fully excecuted (repeat location). These 8 steps are the same as the 8 slots in the graphical interface that is provided by TE Technology Inc.  
-You can start the excecution of the locations by calling `my_device.start_control()`. The controller will start with excecuting location 1, and then move to the next location as indicated by the repeat location value.  
+You can start the execution of the locations by calling `my_device.start_control()`. The controller will start with executing location 1, and then move to the next location as indicated by the repeat location value.  
 To stop the operation use: `my_device.set_idle()`.  
 You can get the settings of each location by using: `my_device.get_sequence(location='all')`.
