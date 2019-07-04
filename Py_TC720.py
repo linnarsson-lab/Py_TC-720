@@ -13,7 +13,7 @@
 #NOTE!
 #Not all possible functions of the TC-720 are implemented in this code.
 #Hopefully this code in combination with the manual provides enough support to
-#implement the other funcitons. 
+#implement the other funcitons. If you do please update the project to improve.
 
 ################################################################################
 
@@ -26,10 +26,21 @@
 #import Py_TC720
 #my_device = Py_TC720.TC720(address, name='hotstuff', verbose=True)
 
-#The most usefull function is the "set_temp()" function, with which you can set
-#and hold a temperature for a long time.
+#The temperature controller had differend modes of opperation which are set
+#by changing the mode using the set_mode() function:
+# 0: Normal Set Mode; This mode is used to hold one temperature (0), one output 
+#   power(1) or an analouge output by another power source (2). Set one of
+#   these 3 control types using the set_control_type() function.
+# 1: Ramp/Soak Mode: This mode is used to program a specific tempertature and
+#   and time sequence.
+# 2: Proportional+Dead Band mode; (limited to no support yet)
+
+# The machine will default to the Normal set mode that hold one specific
+# temperature. Default is 20C. The temperature can be set using: set_temp(X)
 
 #If you want a more custom temperature cycle:
+#Set the machine in Ramp/Soak mode using: set_mode(1)
+#To program the temperature schedule:
 #The controller has 8 'locations' that can hold information for a temperature
 #cycle. For each location you need to specify the desired temperature, the 
 #time it should hold that temperature (soak time), the time it should take to
@@ -49,6 +60,7 @@ from serial.tools import list_ports
 import time
 import numpy as np
 from collections import deque
+import warnings
 
 #_______________________________________________________________________________
 #   FIND SERIAL PORT
@@ -104,7 +116,7 @@ def find_address(identifier = None):
     
     return port[0]
     
-#_______________________________________________________________________________
+#===========================================================================
 #   TC-720 class
 
 class TC720():
@@ -112,7 +124,8 @@ class TC720():
     Class to control the TC-720 temperature controller from TE Technology Inc. 
     
     """
-    def __init__(self, address, name = 'TC-720', verbose = False):
+    def __init__(self, address, name = 'TC-720', mode = 0, control_type = 0,
+                 default_temp = 20, verbose = False):
         """
         Input:
         `address`(str): The addres of TC-720. Use the "find_address()" function
@@ -120,12 +133,28 @@ class TC720():
             and 'dev/ttyUSBX' in linux, where X is the address number.
         `name`(str): Custom name of the TC-720. Usefull if there are multiple
             units connected. Default = TC-720.
+        `mode`(int 0-2): The mode of operation:
+            0: Normal Set Mode; maintain one value. This can be one temperature,
+            one output power or output by an external power source. See 
+            control_type for options.
+            1: Ramp/Soak Mode: This mode is used to program a specific 
+            tempertature and and time sequence.
+            2: Proportional+Dead Band mode; (limited to no support yet)
+            Default = 0 (set one value)
+        `control_type`(int 0-2): If mode is 0 the controller can maintian
+            one temperature (0), one output power(1) or an analouge 
+            output by another power source (2).
+            Default = 0 (set one temperature
+        `default_temp`(int): Default temperature in degree centigrade.
+            Default = 20C
         `verbose`(bool): Option to print status messages.
-        
 
         """
         self.address = address
         self.name = name
+        self.mode = mode
+        self.control_type = control_type
+        self.default_temp = default_temp
         self.verbose = verbose
         self.verboseprint = print if self.verbose else lambda *a, **k: None
 
@@ -133,8 +162,15 @@ class TC720():
         self.ser = serial.Serial(self.address, timeout= 2, baudrate=230400, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE)
         self.verboseprint('Made connection with temperature controller: {}'.format(self.name))
 
-    #---------------------------------------------------------------------------
+        #Set the machine into temperatue control
+        self.set_temp(self.default_temp)
+        self.set_mode(self.mode)
+        self.set_control_type(self.control_type)
+        self.verboseprint('Mode set to: {}, control type set to: {}, temperature set to: {}C'.format(self.mode, self.control_type, self.default_temp))
+
+    #===========================================================================
     #    Functions for sending and reading messages
+    #===========================================================================
 
     def int_to_hex(self, integer):
         """
@@ -347,8 +383,9 @@ class TC720():
             print('{} Error: {}'.format(self.name, e))
             self.verboseprint('Connection error with temperature control unit: {}'.format(self.name))
 
-    #---------------------------------------------------------------------------
+    #===========================================================================
     #    Read functions
+    #===========================================================================
 
     def get_temp(self):
         """
@@ -374,6 +411,45 @@ class TC720():
         response = self.read_message()
         mode = int(response[1:5], base=16)
         return mode
+
+    def get_control_type(self):
+        """
+        Get the control mode of the temperature control unit.
+        Relevant only if the mode is set to 0 (Normal set)
+        Return control type:
+            0 = PID, set a single fixed temperture.
+            1 = Manual, set a fixed output power level.
+            2 = Analog Out, Use with external variable voltage
+            supply.
+
+        """
+        self.send_message(self.message_builder('73'))
+        response = self.read_message()
+        control = int(response[1:5], base=16)
+        return control
+
+    def get_set_temp(self):
+        """
+        Get the current set temperature for the Normal set mode.
+        Returns set temperature in degree Celcius
+
+        """
+        self.send_message(self.message_builder('50'))
+        response = self.read_message()
+        set_temp = int(response[1:5], base=16) / 100
+        return set_temp
+
+    def get_manual_output(self):
+        """
+        Get the current manual output.
+        Returns the manual output in the range -511 to 511
+        for -100% and 100% output power.
+
+        """
+        self.send_message(self.message_builder('74'))
+        response = self.read_message()
+        manual_output = int(response[1:5], base=16)
+        return manual_output
 
     def get_ramp_soak_status(self):
         """
@@ -496,20 +572,129 @@ class TC720():
         response = self.read_message()
         return self.response_to_int(response)
 
+    def check_mode(self, desired_mode):
+        """
+        Check if the machine is in the desired mode.
+        Used to check if machine is in the corresponding mode to execute a function.
+        Input:
+        `desired_mode`(int): Desired mode 0, 1 or 2.
+        Returns True or False and gives a warning if False
+
+        """
+        if desired_mode not in [0, 1, 2]:
+            raise ValueError('Invalid input: {}, should be integer 0, 1 or 2'.format(repr(desired_mode)))
+
+        cur_mode = self.get_mode()
+        if not  cur_mode == desired_mode:
+            warnings.warn('TC720: {} is not set in the right mode to use this function. Current mode: {}, set the machine in the {} mode using set_mode({})'.format(self.name, cur_mode, desired_mode, desired_mode))
+            return False
+        else:
+            return True
+    #===========================================================================
+    #    Set functions for the operation modes
+    #===========================================================================
+
+    def set_mode(self, mode):
+        """
+        Set the mode of the temperature control unit.
+        Input:
+        `mode`(int): Mode to set. 
+            0 = Normal set. Set a single temperature, a single output power 
+                level or Analog out with an external power source.
+                Set one of these 3 with the set_control() function
+            1 = Ramp/Soak. Use the 8 ramp/soak seaquences to program a 
+                temperatrue cycle.
+            2 = Proportional+Dead Band
+        
+        """
+        #Check input
+        if mode not in [0, 1, 2]:
+            raise ValueError('Invalid input: {}, should be integer 0, 1 or 2'.format(repr(mode)))
+        
+        #Set the mode
+        self.send_message(self.message_builder('3d',  self.int_to_hex(mode)), write=True)
+        self.verboseprint('Mode set to: {}'.format(mode))
+
+
+    def set_control_type(self, control_type):
+        """
+        Set the control mode of the temperature control unit.
+        Relevant only if the mode is set to 0 (Normal set)
+        Input:
+        `control_type`:
+            0 = PID, set a single fixed temperture.
+            1 = Manual, set a fixed output power level.
+            2 = Analog Out, Use with external variable voltage
+            supply.
+
+        """
+        #Check input
+        if control_type not in [0, 1, 2]:
+            raise ValueError('Invalid input: {}, should be integer 0, 1 or 2'.format(repr(control_type)))
+
+        #Check if TC720 is in correct mode
+
+
+        #Set the control type
+        self.send_message(self.message_builder('3f',  self.int_to_hex(control_type)), write=True)
+        self.verboseprint('Control type set to: {}'.format(control_type))
+
     #---------------------------------------------------------------------------
-    #    Set functions
+    #    Set functions for Normal set mode
+    #    These fucntions are used to set and hold a single temperature
+    #    or output level.
+    #---------------------------------------------------------------------------
+
+    def set_temp(self, temperature):
+        """
+        Set the temperature and hold that temperature.
+        Input:
+        `temperature`(int): Temperature in degree Celcius
+
+        Only works in the Normal set mode: set_mode(0) and
+        control type PID: set_control(0)
+        """
+        #Check mode
+        self.check_mode(0)
+        
+        #Set the temperature
+        temperature = int(temperature * 100)
+        self.send_message(self.message_builder('1c',  self.int_to_hex(temperature)), write=True)
+        self.verboseprint('Temperature set to: {}'.format(temperature/100))
+
+    def set_output(self, output):
+        """
+        Set the output to a specific value.
+        Input:
+        `output`(int): range -511 to 511 for -100% to 100% output.
+
+        Only works in the Normal set mode: set_mode(0) and control
+        type Manual: set_control(1)
+        """
+        #Check mode
+        self.check_mode(0)
+
+        self.send_message(self.message_builder('40',  self.int_to_hex(output)), write=True)
+        self.verboseprint('Output set to: {}'.format(output))
+
+    #---------------------------------------------------------------------------
+    #    Set functions for ramp/soak mode
+    #    Functions to set the samp/soak sequence.
+    #---------------------------------------------------------------------------
 
     def set_soak_temp(self, location, temperature):
         """
         Set the soak temperature (holding temperature) of the specified location.
         Input:
         `location`(int): locations 1-8
-        `temperature`(float, max 2 decimals): Temperature in degree Centrigrade.
+        `temperature`(float, max 2 decimals): Temperature in degree centigrade.
             Positive and negative values are possible.
         
         """
         if type(location) != int or (1< location > 8):
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        #Check mode
+        self.check_mode(1)
         
         location_code = 'a' + str(location-1)
         temperature = int(temperature * 100)
@@ -531,6 +716,8 @@ class TC720():
         #Check input
         if type(location) != int or (1< location > 8):
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        #Check mode
+        self.check_mode(1)
         
         #Set ramp time
         location_code = 'b' + str(location-1)
@@ -550,6 +737,8 @@ class TC720():
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         if type(time) != int or (1< time > 32768): #half 2**16
             raise ValueError('Invalid time: "{}", type: "{}. Must be a integer in the range 1-32768.'.format(location, type(location)))
+        #Check mode
+        self.check_mode(1)
             
         #set soak time
         location_code = 'c' + str(location-1)
@@ -572,6 +761,8 @@ class TC720():
         #Check input
         if type(location) != int or (1< location > 8):
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        #Check mode
+        self.check_mode(1)
         
         location_code = 'd' + str(location-1)
         self.send_message(self.message_builder(location_code, self.int_to_hex(repeats)), write=True)
@@ -590,31 +781,41 @@ class TC720():
             raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
         if type(repeat_loc) != int or (1< repeat_loc > 8):
             raise ValueError('Invalid repeat_loc: "{}", type: "{}. Must be a integer in the range 1-8.'.format(repeat_loc, type(repeat_loc)))
+        #Check mode
+        self.check_mode(1)
         
         location_code = 'e' + str(location-1)
         self.send_message(self.message_builder(location_code, self.int_to_hex(repeat_loc)), write=True)
 
     #---------------------------------------------------------------------------
     #    Start stop funcitons
+    #---------------------------------------------------------------------------
 
-    def start_control(self):
+    def start_soak(self):
         """
-        Start the temperature control and excecute all sequences in the
-        locations.
-        
+        Start the ramp/soak temperature control and excecute all sequences
+        in the locations.
+
         """
+        #Check mode
+        self.check_mode(1)
+        #Start soak
         self.send_message(self.message_builder('08', '0001'))
 
     def set_idle(self):
         """
-        Set the machine to idle.
-        
+        Stop the ramp/soak ecexution.        
+
         """
+        #Check mode
+        self.check_mode(1)
+        #Set to idel
         self.send_message(self.message_builder('08', '0000'))
 
-    #---------------------------------------------------------------------------
+    #===========================================================================
     #    Combined functions
     #    These are the most usefull to the user
+    #===========================================================================
 
     def get_sequence(self, location='all'):
         """
@@ -693,30 +894,9 @@ class TC720():
             next_loc = location + 100
         self.set_repeat_location(location, next_loc)
      
-    def set_temp(self, temp, ramp_time=60, start=True):
-        """
-        A quick function to set the temperature and hold as long as the machine
-        permits, ~24days. For more complex temperature cycles use the 
-        "set_single_sequence()" function and set all 8 locations.
-        Input:
-        `temp`(float, max 2 decimals): Target temperature in Celcius.
-        `ramp_time`(int): Time in seconds it has to take to ramp up to the target 
-            temperature. Default = 60 seconds.
-        `start`(bool): If True it will start the temperature controll. Otherwise
-            it will only set the specified setting. The temperature controll can
-            be started using the "start_control()" function
-        
-        """
-        #Set the first sequence. 
-        self.set_single_sequence(1, temp=temp, ramp_time=ramp_time, repeats=1000)
-        
-        #Fill the rest of the sequences
-        for i in range(2, 9):
-            self.set_single_sequence(i, temp=temp, ramp_time=1, repeats=1000)
-               
-        #Start the temperature control
-        if start == True:
-            self.start_control()
+    #===========================================================================
+    #   Wait untill desired temperature is reached
+    #===========================================================================
 
     def waitTemp(self, target_temp, error=1, array_size=5, sd=0.01, 
                 timeout = 5, set_idle = True):
@@ -783,9 +963,10 @@ class TC720():
             time.sleep(1-execute_time)
 
 
-    #---------------------------------------------------------------------------
+    #===========================================================================
     #    Check errors
-    
+    #===========================================================================
+
     def check_errors(self, set_idle = True, raise_exception = True):
         """
         Check if there are errors on the system.  
