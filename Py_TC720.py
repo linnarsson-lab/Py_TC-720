@@ -175,19 +175,31 @@ class TC720():
     def int_to_hex(self, integer):
         """
         Formats integers to hexadecimal encoded string, to use in the 
-        self.message_builder function. 
+        self.message_builder function. Max is 32768.
+        Handels negative numbers
         
         """
-        if integer > 65535:
-            raise ValueError('Can not encode integers larger than 65535 in length 4 hexadecimal number.')
+        if abs(integer) > 32768:
+            raise ValueError('Can not encode integers larger than  32768 in length 4 hexadecimal number.')
+
+        #Negative numbers
+        if integer < 0:
+            integer = int((0.5 * 2**16) - integer)
+        print(integer)
+        
         return '{h:0>4}'.format(h = hex(integer)[2:])
 
     def response_to_int(self, response):
         """
-        Retuns the integer representation of the response of the 4 data bits. 
+        Retuns the integer representation of the response of the 4 data bits.
+        Handels negative numbers.
         
         """
-        return int(response[1:5], base=16)
+        response = int(response[1:5], base=16)
+        #Check if it is a negative number, if yes, invert it to the correct value.
+        if response > 0.5 * (2**16): 
+            response = -(2**16 - response)
+        return response
 
     def make_checksum(self, message):
         """
@@ -259,7 +271,7 @@ class TC720():
         
         message[1:2] = command[0], command[1]
         
-        #Message
+        #Make string message
         if type(value) != str:
             try:
                 value = str(value)
@@ -394,8 +406,7 @@ class TC720():
         
         """
         self.send_message(self.message_builder('01'))
-        response = self.read_message()
-        return int(response[1:-3], 16) / 100
+        return self.response_to_int(self.read_message()) / 100
 
     def get_mode(self):
         """
@@ -408,9 +419,7 @@ class TC720():
         """
         #Ask for mode
         self.send_message(self.message_builder('71'))
-        response = self.read_message()
-        mode = int(response[1:5], base=16)
-        return mode
+        return self.response_to_int(self.read_message())
 
     def get_control_type(self):
         """
@@ -424,9 +433,7 @@ class TC720():
 
         """
         self.send_message(self.message_builder('73'))
-        response = self.read_message()
-        control = int(response[1:5], base=16)
-        return control
+        return self.response_to_int(self.read_message())
 
     def get_set_temp(self):
         """
@@ -435,21 +442,28 @@ class TC720():
 
         """
         self.send_message(self.message_builder('50'))
-        response = self.read_message()
-        set_temp = int(response[1:5], base=16) / 100
-        return set_temp
+        return self.response_to_int(self.read_message()) / 100
 
-    def get_manual_output(self):
+    def get_output(self):
         """
-        Get the current manual output.
-        Returns the manual output in the range -511 to 511
+        Get the current output level.
+        Returns the current output in the range -511 to 511
+        for -100% and 100% output power.
+
+        """
+        self.send_message(self.message_builder('02'))
+        return self.response_to_int(self.read_message())
+
+
+    def get_set_output(self):
+        """
+        Get the set manual output.
+        Returns the set output in the range -511 to 511
         for -100% and 100% output power.
 
         """
         self.send_message(self.message_builder('74'))
-        response = self.read_message()
-        manual_output = int(response[1:5], base=16)
-        return manual_output
+        return self.response_to_int(self.read_message())
 
     def get_ramp_soak_status(self):
         """
@@ -488,14 +502,7 @@ class TC720():
         #Get soak temperature
         location_code = 'a' + hex(location + 7)[-1]
         self.send_message(self.message_builder(location_code))
-        response = self.response_to_int(self.read_message())
-        #Check if it is a negative number, if yes, invert it to the correct value.
-        if response > 0.5 * (2**16): 
-            response = -(2**16 - response)
-        
-        #Convert to degree centigrade
-        soak_temp = response / 100
-        return soak_temp
+        return self.response_to_int(self.read_message()) / 100
 
     def get_ramp_time(self, location):
         """
@@ -512,8 +519,7 @@ class TC720():
         #Get ramp time
         location_code = 'b' + hex(location + 7)[-1]
         self.send_message(self.message_builder(location_code))
-        response = self.read_message()
-        return self.response_to_int(response)
+        return self.response_to_int(self.read_message())
 
     def get_soak_time(self, location):
         """
@@ -530,8 +536,7 @@ class TC720():
         #Get soak time
         location_code = 'c' + hex(location + 7)[-1]
         self.send_message(self.message_builder(location_code))
-        response = self.read_message()
-        return self.response_to_int(response)
+        return self.response_to_int(self.read_message())
 
     def get_repeats(self, location):
         """
@@ -548,8 +553,7 @@ class TC720():
         #Get number of repeats
         location_code = 'd' + hex(location + 7)[-1]
         self.send_message(self.message_builder(location_code))
-        response = self.read_message()
-        return self.response_to_int(response)
+        return self.response_to_int(self.read_message())
 
     def get_repeat_location(self, location):
         """
@@ -569,8 +573,7 @@ class TC720():
         #Get number of repeats
         location_code = 'e' + hex(location + 7)[-1]
         self.send_message(self.message_builder(location_code))
-        response = self.read_message()
-        return self.response_to_int(response)
+        return self.response_to_int(self.read_message())
 
     def check_mode(self, desired_mode):
         """
@@ -632,8 +635,8 @@ class TC720():
         if control_type not in [0, 1, 2]:
             raise ValueError('Invalid input: {}, should be integer 0, 1 or 2'.format(repr(control_type)))
 
-        #Check if TC720 is in correct mode
-
+        #Check mode
+        self.check_mode(0)
 
         #Set the control type
         self.send_message(self.message_builder('3f',  self.int_to_hex(control_type)), write=True)
@@ -701,7 +704,8 @@ class TC720():
         #If the temperature is negative use the "two's complement"
         if temperature < 0:
             temperature = 2**16 + temperature
-            
+        
+        #Set soak temperature
         self.send_message(self.message_builder(location_code, self.int_to_hex(temperature)), write=True)
 
     def set_ramp_time(self, location, time):
@@ -802,15 +806,24 @@ class TC720():
         #Start soak
         self.send_message(self.message_builder('08', '0001'))
 
-    def set_idle(self):
+    def idle_soak(self):
         """
         Stop the ramp/soak ecexution.        
 
         """
         #Check mode
         self.check_mode(1)
-        #Set to idel
+        #Set to idle
         self.send_message(self.message_builder('08', '0000'))
+
+    def set_idle(self):
+        """
+        Set intou output control mode with 0 output.
+
+        """
+        self.set_mode(0)
+        self.set_output(0)
+        self.set_control_type(1)
 
     #===========================================================================
     #    Combined functions
