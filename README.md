@@ -25,15 +25,16 @@ Set the controller to maintain one value. There are 3 options for values that ca
   
 The easiest option is to set one temperature:
 - set the mode to 0: `my_device.set_mode(0)`
-- set the control type to 0: `my_device.set_control_type(0)`
+- set the control type to 0: `my_device.set_control_type(0)` this type controls the temperature.
 - set the desired temperature, for instance 37C: `my_device.set_temp(37)`
   
 The device will default to this mode and set the temperature to 20C when initiated.
+To set the device to idle use the `my_device.set_idle()` function. This will set the controller into mode 0, control type 1 to control the output, and then set the output to zero. To resume operation you might need to change the mode and control type to the desired settings.
 
 ## Mode: 1, Programming a temperature cycle
 This is used for setting a specific temperature cycle.  
 The controller has 8 'locations' that can hold information for a temperature cycle. You can program these using the `my_device.set_single_sequence()` function. For each location you need to specify the desired temperature (soak temp), the time it should take to reach the desired temperature (ramp time), the time it should hold that temperature (soak time), the number of times this location should be performed (repeats) and the next step/location that should be performed if the current location is fully excecuted (repeat location). These 8 steps are the same as the 8 slots in the graphical interface that is provided by TE Technology Inc.  
-You can start the excecution of the locations by calling `my_device.start_control()`. The controller will start with excecuting location 1, and then move to the next location as indicated by the repeat location value.  
+You can start the execution of the locations by calling `my_device.start_control()`. The controller will start with executing location 1, and then move to the next location as indicated by the repeat location value.  
 To stop the operation use: `my_device.idle_soak()`.  
 You can get the settings of each location by using: `my_device.get_sequence(location='all')`.
 
