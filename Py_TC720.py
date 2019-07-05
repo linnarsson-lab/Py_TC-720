@@ -50,7 +50,7 @@
 #These 8 steps are the same as the 8 slots in the graphical interface that is
 #provided by TE Technologies INC.
 #You can start the excecution of the 8 location by calling "start_control()",
-#and stop it by calling "set_idle()".
+#and stop it by calling "idle_soak()".
 ################################################################################
 
 #_______________________________________________________________________________
