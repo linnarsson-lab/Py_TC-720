@@ -13,25 +13,25 @@
 #NOTE!
 #Not all possible functions of the TC-720 are implemented in this code.
 #Hopefully this code in combination with the manual provides enough support to
-#implement the other funcitons. If you do please update the project to improve.
+#implement the other functions. If you do please update the project to improve.
 
 ################################################################################
 
 #Basic Operation:
 
-#First, find the addres of the temperature controller by using the:
+#First, find the address of the temperature controller by using the:
 #"find_address()" function. 
 
-#Then initialise the connection with the controller:
+#Then initialize the connection with the controller:
 #import Py_TC720
 #my_device = Py_TC720.TC720(address, name='hotstuff', verbose=True)
 
-#The temperature controller had differend modes of opperation which are set
+#The temperature controller had different modes of operation which are set
 #by changing the mode using the set_mode() function:
 # 0: Normal Set Mode; This mode is used to hold one temperature (0), one output 
-#   power(1) or an analouge output by another power source (2). Set one of
+#   power(1) or an analogue output by another power source (2). Set one of
 #   these 3 control types using the set_control_type() function.
-# 1: Ramp/Soak Mode: This mode is used to program a specific tempertature and
+# 1: Ramp/Soak Mode: This mode is used to program a specific temperature and
 #   and time sequence.
 # 2: Proportional+Dead Band mode; (limited to no support yet)
 
@@ -46,11 +46,11 @@
 #time it should hold that temperature (soak time), the time it should take to
 #reach the desired temperature (ramp time), the number of times this location
 #should be performed (repeats) and the next step/location that should be
-#performed if the current location is fully excecuted (repeat location).
+#performed if the current location is fully executed (repeat location).
 #These 8 steps are the same as the 8 slots in the graphical interface that is
 #provided by TE Technologies INC.
-#You can start the excecution of the 8 location by calling "start_control()",
-#and stop it by calling "idle_soak()".
+#You can start the execution of the 8 location by calling "start_control()",
+#and stop it by calling "set_idle()".
 ################################################################################
 
 #_______________________________________________________________________________
@@ -77,7 +77,7 @@ def find_address(identifier = None):
         list_ports.grep() function for more details.
     Returns:
     The function prints the address and serial number of the FTDI chip.
-    `port`(obj): Retruns a pyserial port object. port.device stores the 
+    `port`(obj): Returns a pyserial port object. port.device stores the 
         address.
     
     """
@@ -116,8 +116,9 @@ def find_address(identifier = None):
     
     return port[0]
     
-#===========================================================================
+#==============================================================================
 #   TC-720 class
+#==============================================================================
 
 class TC720():
     """
@@ -128,21 +129,21 @@ class TC720():
                  default_temp = 20, verbose = False):
         """
         Input:
-        `address`(str): The addres of TC-720. Use the "find_address()" function
-            to find the addres. It should have the format of 'ComX' on Windows
+        `address`(str): The address of TC-720. Use the "find_address()" function
+            to find the address. It should have the format of 'ComX' on Windows
             and 'dev/ttyUSBX' in linux, where X is the address number.
-        `name`(str): Custom name of the TC-720. Usefull if there are multiple
+        `name`(str): Custom name of the TC-720. Useful if there are multiple
             units connected. Default = TC-720.
         `mode`(int 0-2): The mode of operation:
-            0: Normal Set Mode; maintain one value. This can be one temperature,
+            0: Normal Set Mode; maintain one value. This can be one temperature
             one output power or output by an external power source. See 
             control_type for options.
             1: Ramp/Soak Mode: This mode is used to program a specific 
-            tempertature and and time sequence.
+            temperature and time sequence.
             2: Proportional+Dead Band mode; (limited to no support yet)
             Default = 0 (set one value)
-        `control_type`(int 0-2): If mode is 0 the controller can maintian
-            one temperature (0), one output power(1) or an analouge 
+        `control_type`(int 0-2): If mode is 0 the controller can maintain
+            one temperature (0), one output power(1) or an analogue 
             output by another power source (2).
             Default = 0 (set one temperature
         `default_temp`(int): Default temperature in degree centigrade.
@@ -162,37 +163,36 @@ class TC720():
         self.ser = serial.Serial(self.address, timeout= 2, baudrate=230400, stopbits=serial.STOPBITS_ONE, parity=serial.PARITY_NONE)
         self.verboseprint('Made connection with temperature controller: {}'.format(self.name))
 
-        #Set the machine into temperatue control
+        #Set the machine into temperature control
         self.set_temp(self.default_temp)
         self.set_mode(self.mode)
         self.set_control_type(self.control_type)
         self.verboseprint('Mode set to: {}, control type set to: {}, temperature set to: {}C'.format(self.mode, self.control_type, self.default_temp))
 
-    #===========================================================================
+    #==========================================================================
     #    Functions for sending and reading messages
-    #===========================================================================
+    #==========================================================================
 
     def int_to_hex(self, integer):
         """
         Formats integers to hexadecimal encoded string, to use in the 
         self.message_builder function. Max is 32768.
-        Handels negative numbers
+        Handles negative numbers
         
         """
         if abs(integer) > 32768:
-            raise ValueError('Can not encode integers larger than  32768 in length 4 hexadecimal number.')
+            raise ValueError('Can not encode positive or negative integers larger than  32768 in length 4 hexadecimal number.')
 
         #Negative numbers
         if integer < 0:
             integer = int((0.5 * 2**16) - integer)
-        print(integer)
         
         return '{h:0>4}'.format(h = hex(integer)[2:])
 
     def response_to_int(self, response):
         """
-        Retuns the integer representation of the response of the 4 data bits.
-        Handels negative numbers.
+        Returns the integer representation of the response of the 4 data bits.
+        Handles negative numbers.
         
         """
         response = int(response[1:5], base=16)
@@ -203,8 +203,8 @@ class TC720():
 
     def make_checksum(self, message):
         """
-        Make the 2 bit checksum for messages. It calculates the 8 bit, modulo 256
-        checksum in the format of 2 ASCII hex characters.
+        Make the 2 bit checksum for messages. It calculates the 8 bit, modulo 
+        256 checksum in the format of 2 ASCII hex characters.
         Returns the checksum as a string.
         
         """
@@ -244,11 +244,11 @@ class TC720():
         """
         Constructs the message in the right format.
         Input:
-        `command`(str): Command character with length 2, encoded in hexadecimal 
+        `command`(str): Command character with length 2, encoded in hexadecimal
             ASCII characters.
         `value`(str): Value characters with length 4, encoded in hexadecimal
             ASCII characters.
-        Retruns message as list of 10 individual bits.     
+        Returns message as list of 10 individual bits.     
         
         Structure of message: (stx)CCDDDDSS(etx)
             (stx): Start text character = '*'
@@ -290,8 +290,9 @@ class TC720():
 
     def send_message(self, message, write=False):
         """
-        Send message to the temperature controll unit. Use the self.message_builder()
-        function to construct the message in the right format.
+        Send message to the temperature control unit. Use the 
+        self.message_builder()function to construct the message in the right 
+        format.
         Input:
         `message`(list): Message with 10 bits as individual ASCII stings.
             Structure of message: (stx)CCDDDDSS(etx)
@@ -303,8 +304,8 @@ class TC720():
             Format: ['*', 'C', 'C', 'D', 'D', 'D', 'D', 'S', 'S', '\r']
         `write`(bool): Small trick to make sure a certain message is dealt with
             as a write command (opposed to a read command). The problem is that 
-            if a zero is written to the controler the program thinks it is a
-            read command because read comands sent the value '0000'.
+            if a zero is written to the controller the program thinks it is a
+            read command because read commands sent the value '0000'.
         
         """
         #Make sure the reply buffer is empty
@@ -314,9 +315,9 @@ class TC720():
         #The read command is responded with the requested value.
         #The write command is responded with a repeat of the value to write.
         #These 2 messages are handled differently. For the read commands the 
-        #command is just send and the "self.read_message()" function deals with error
-        #handling. For write commands, this function checks if the message is
-        #proparly received. 
+        #command is just send and the "self.read_message()" function deals with
+        #error handling. For write commands, this function checks if the 
+        #message is properly received. 
         
         #Send read commands
         if ''.join(message[3:7]) == '0000' and write == False:
@@ -326,7 +327,7 @@ class TC720():
              
         #Send write commands
         else:
-            #Send the messgae
+            #Send the message
             for n in range(5):
                 for i in message:
                     self.ser.write(str.encode(i))
@@ -343,7 +344,7 @@ class TC720():
                 #Unknown error
                 else:
                     checksum_error = ''
-                    self.verboseprint('    {} Error: Temparature controller did not correctly receive the command.'.format(self.name))
+                    self.verboseprint('    {} Error: Temperature controller did not correctly receive the command.'.format(self.name))
                 time.sleep(0.05)
             else:
                 raise Exception('Could not correctly send "{}" to temperature controller: {}. {}'.format(''.join(message[:-1]), self.name, checksum_error))
@@ -353,16 +354,17 @@ class TC720():
         Read a message sent by the temperature control unit. 
         
         Input
-        `timeout`(int): Time in seconds in which the program will check if there
-            are messages send by the conroller. If it timesout it will throw a
-            warning and return an empty bytestring (b''), which will probably
-            cause an error in the rest of the code. Default = 1 second.
-        `detect_error`(bool): If True, it will check if the controller repots an
-            error in the checksum of the send messages. And it will check if the
-            response by the controller has an error in the checksum. It will
-            raise an error if a checksum mistake as been made. Default = True.
+        `timeout`(int): Time in seconds in which the program will check if 
+            there are messages send by the controller. If it times out it will 
+            throw a warning and return an empty byte-string (b''), which will 
+            probably cause an error in the rest of the code. Default = 1 second.
+        `detect_error`(bool): If True, it will check if the controller reports 
+            an error in the checksum of the send messages. And it will check if
+            the response by the controller has an error in the checksum. It 
+            will raise an error if a checksum mistake as been made. 
+            Default = True.
         Returns: 
-        The response by the controller as bytestring.     
+        The response by the controller as byte-string.     
         
         """
         try:
@@ -393,16 +395,16 @@ class TC720():
         
         except Exception as e:
             print('{} Error: {}'.format(self.name, e))
-            self.verboseprint('Connection error with temperature control unit: {}'.format(self.name))
+            raise Exception ('Connection error with temperature control unit: {}. Error: {}'.format(self.name, e))
 
-    #===========================================================================
+    #==========================================================================
     #    Read functions
-    #===========================================================================
+    #==========================================================================
 
     def get_temp(self):
         """
         Read the current temperature.
-        Returns temperature in degree Celcius with 2 decimals.
+        Returns temperature in degree Celsius with 2 decimals.
         
         """
         self.send_message(self.message_builder('01'))
@@ -426,7 +428,7 @@ class TC720():
         Get the control mode of the temperature control unit.
         Relevant only if the mode is set to 0 (Normal set)
         Return control type:
-            0 = PID, set a single fixed temperture.
+            0 = PID, set a single fixed temperature.
             1 = Manual, set a fixed output power level.
             2 = Analog Out, Use with external variable voltage
             supply.
@@ -438,7 +440,7 @@ class TC720():
     def get_set_temp(self):
         """
         Get the current set temperature for the Normal set mode.
-        Returns set temperature in degree Celcius
+        Returns set temperature in degree Celsius
 
         """
         self.send_message(self.message_builder('50'))
@@ -469,7 +471,7 @@ class TC720():
         """
         Returns if the temperature control unit is running a temperature
         sequence. If it is running a sequence it returns the Ramp/Soak status.
-        Retruns:
+        Returns:
         "No sequence running" or a list of currently running operations.   
         
         """
@@ -489,15 +491,15 @@ class TC720():
             
     def get_soak_temp(self, location):
         """
-        Get the soak temperature (holding temperature) of the specified location.
+        Get the soak temperature (holding temperature) of the specified
+        location.
         Input:
         `location`(int): locations 1-8
         Returns the set temperature in degree Centigrade
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         
         #Get soak temperature
         location_code = 'a' + hex(location + 7)[-1]
@@ -513,8 +515,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         
         #Get ramp time
         location_code = 'b' + hex(location + 7)[-1]
@@ -530,8 +531,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         
         #Get soak time
         location_code = 'c' + hex(location + 7)[-1]
@@ -547,8 +547,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         
         #Get number of repeats
         location_code = 'd' + hex(location + 7)[-1]
@@ -557,28 +556,37 @@ class TC720():
 
     def get_repeat_location(self, location):
         """
-        Get the next location to excecute. There are 8 locations where
-        temperature settings can be stored. When one is done it will excecute the
-        next one. This function fetches the next location that will be performed 
-        after the one in the specified location is done.
+        Get the next location to execute. There are 8 locations where
+        temperature settings can be stored. When one is done it will execute 
+        the next one. This function fetches the next location that will be 
+        performed after the one in the specified location is done.
         Input:
         `location`(int): locations 1-8
         Returns the next location in the sequence. 
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         
         #Get number of repeats
         location_code = 'e' + hex(location + 7)[-1]
         self.send_message(self.message_builder(location_code))
         return self.response_to_int(self.read_message())
 
+    def validate_data(self, input):
+        """
+        Check if the input for a location is valid.
+
+        """
+        if type(input) != int or not 1 <= input <= 8:
+            raise ValueError('Invalid location: "{}", type: "{}. Must be an integer in the range 1-8.'.format(input, type(input)))
+
+
     def check_mode(self, desired_mode):
         """
         Check if the machine is in the desired mode.
-        Used to check if machine is in the corresponding mode to execute a function.
+        Used to check if machine is in the corresponding mode to execute a 
+        function.
         Input:
         `desired_mode`(int): Desired mode 0, 1 or 2.
         Returns True or False and gives a warning if False
@@ -593,9 +601,9 @@ class TC720():
             return False
         else:
             return True
-    #===========================================================================
+    #==========================================================================
     #    Set functions for the operation modes
-    #===========================================================================
+    #==========================================================================
 
     def set_mode(self, mode):
         """
@@ -605,8 +613,8 @@ class TC720():
             0 = Normal set. Set a single temperature, a single output power 
                 level or Analog out with an external power source.
                 Set one of these 3 with the set_control() function
-            1 = Ramp/Soak. Use the 8 ramp/soak seaquences to program a 
-                temperatrue cycle.
+            1 = Ramp/Soak. Use the 8 ramp/soak sequences to program a 
+                temperature cycle.
             2 = Proportional+Dead Band
         
         """
@@ -625,7 +633,7 @@ class TC720():
         Relevant only if the mode is set to 0 (Normal set)
         Input:
         `control_type`:
-            0 = PID, set a single fixed temperture.
+            0 = PID, set a single fixed temperature.
             1 = Manual, set a fixed output power level.
             2 = Analog Out, Use with external variable voltage
             supply.
@@ -644,7 +652,7 @@ class TC720():
 
     #---------------------------------------------------------------------------
     #    Set functions for Normal set mode
-    #    These fucntions are used to set and hold a single temperature
+    #    These functions are used to set and hold a single temperature
     #    or output level.
     #---------------------------------------------------------------------------
 
@@ -652,7 +660,7 @@ class TC720():
         """
         Set the temperature and hold that temperature.
         Input:
-        `temperature`(int): Temperature in degree Celcius
+        `temperature`(int): Temperature in degree Celsius
 
         Only works in the Normal set mode: set_mode(0) and
         control type PID: set_control(0)
@@ -663,7 +671,7 @@ class TC720():
         #Set the temperature
         temperature = int(temperature * 100)
         self.send_message(self.message_builder('1c',  self.int_to_hex(temperature)), write=True)
-        self.verboseprint('Temperature set to: {}'.format(temperature/100))
+        self.verboseprint('Temperature set to: {}C'.format(temperature/100))
 
     def set_output(self, output):
         """
@@ -682,7 +690,7 @@ class TC720():
 
     #---------------------------------------------------------------------------
     #    Set functions for ramp/soak mode
-    #    Functions to set the samp/soak sequence.
+    #    Functions to set the ramp/soak sequence.
     #---------------------------------------------------------------------------
 
     def set_soak_temp(self, location, temperature):
@@ -718,8 +726,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         #Check mode
         self.check_mode(1)
         
@@ -737,8 +744,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         if type(time) != int or (1< time > 32768): #half 2**16
             raise ValueError('Invalid time: "{}", type: "{}. Must be a integer in the range 1-32768.'.format(location, type(location)))
         #Check mode
@@ -753,8 +759,8 @@ class TC720():
         Set the number of repeats to a temperature location. The program will 
         cycle over all 8 locations in sequence and counts how many times a 
         location is performed.
-        Warning: There is some strange behaviour if one of the locations has 
-        fewer repeats than the other locations, it will be excecuted as many
+        Warning: There is some strange behavior if one of the locations has 
+        fewer repeats than the other locations, it will be executed as many
         times as the location with the most. 
         Input:
         `location`(int): locations 1-8
@@ -763,8 +769,7 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
         #Check mode
         self.check_mode(1)
         
@@ -781,23 +786,21 @@ class TC720():
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
-        if type(repeat_loc) != int or (1< repeat_loc > 8):
-            raise ValueError('Invalid repeat_loc: "{}", type: "{}. Must be a integer in the range 1-8.'.format(repeat_loc, type(repeat_loc)))
+        self.validate_data(location)
+        self.validate_data(repeat_loc)
         #Check mode
         self.check_mode(1)
         
         location_code = 'e' + str(location-1)
         self.send_message(self.message_builder(location_code, self.int_to_hex(repeat_loc)), write=True)
 
-    #---------------------------------------------------------------------------
-    #    Start stop funcitons
-    #---------------------------------------------------------------------------
+    #--------------------------------------------------------------------------
+    #    Start stop functions
+    #--------------------------------------------------------------------------
 
     def start_soak(self):
         """
-        Start the ramp/soak temperature control and excecute all sequences
+        Start the ramp/soak temperature control and execute all sequences
         in the locations.
 
         """
@@ -808,7 +811,7 @@ class TC720():
 
     def idle_soak(self):
         """
-        Stop the ramp/soak ecexution.        
+        Stop the ramp/soak execution.        
 
         """
         #Check mode
@@ -818,17 +821,17 @@ class TC720():
 
     def set_idle(self):
         """
-        Set intou output control mode with 0 output.
+        Set in to output control mode with 0 output.
 
         """
         self.set_mode(0)
         self.set_output(0)
         self.set_control_type(1)
 
-    #===========================================================================
+    #==========================================================================
     #    Combined functions
-    #    These are the most usefull to the user
-    #===========================================================================
+    #    These are the most useful to the user
+    #==========================================================================
 
     def get_sequence(self, location='all'):
         """
@@ -838,11 +841,11 @@ class TC720():
         Input:
         `location`(list, int or str): Specify one location as an integer (1-8).
             Or specify multiple locations as a list of integers. Or use the 
-            keyword "all" to retrieve data of all locations (takes 4-5 seconds).
+            keyword "all" to retrieve data of all locations (takes 4-5 seconds)
         Returns:
         Array of the data. The first row contains the headers of the table:
         ['Loc', 'Temp', 'Ramp time', 'Soak time', 'Repeats', 'Repeat loc']
-        'Loc': Location the data is comming from.
+        'Loc': Location the data is coming from.
         'Temp': The soak temperature, which is the target temperature.
         'Ramp time': The time the ramp takes to reach the soak temperature.
         'Soak time' : The time the soak temperature should be kept.
@@ -872,7 +875,7 @@ class TC720():
         Set the ramp and temperature settings of one location. 
         Input:
         `location`(int): Location to alter (1-8).
-        `temp`(float, max 2 decimals): Target temperature in Celcius.
+        `temp`(float, max 2 decimals): Target temperature in Celsius.
         `ramp_time`(int): Time it has to take to ramp up to the target 
             temperature.
         `soak_time`(int): Time the temperature has to be kept at the target
@@ -882,17 +885,16 @@ class TC720():
         `repeats`(int): Number of times the location has to be repeated. The
             program will cycle over all 8 locations in sequence and counts how 
             many times a location is performed. 
-            Warning: There is some strange behaviour if one of the locations has 
-            fewer repeats than the other locations, it will be excecuted as many
-            times as the location with the most. 
-        `go_to`(int, None): If specified indicates the next location to excecute.
-            if set to "None" it will default to the next location. If the
-            location = 8, it will go to location 1. 
+            Warning: There is some strange behavior if one of the locations 
+            has fewer repeats than the other locations, it will be executed 
+            as many times as the location with the most. 
+        `go_to`(int, None): If specified indicates the next location to
+            execute. If set to "None" it will default to the next location. 
+            If the location = 8, it will go to location 1. 
         
         """
         #Check input
-        if type(location) != int or (1< location > 8):
-            raise ValueError('Invalid location: "{}", type: "{}. Must be a integer in the range 1-8.'.format(location, type(location)))
+        self.validate_data(location)
 
         self.set_soak_temp(location, temp)
         self.set_ramp_time(location, ramp_time)
@@ -907,29 +909,29 @@ class TC720():
             next_loc = location + 100
         self.set_repeat_location(location, next_loc)
      
-    #===========================================================================
-    #   Wait untill desired temperature is reached
-    #===========================================================================
+    #==========================================================================
+    #   Wait until desired temperature is reached
+    #==========================================================================
 
     def waitTemp(self, target_temp, error=1, array_size=5, sd=0.01, 
                 timeout = 5, set_idle = True):
         """
-        Wait untill the target temperature has been reached. This can also be
-        done by waiting the ramp time, but use this funciton if you want to be
+        Wait until the target temperature has been reached. This can also be
+        done by waiting the ramp time, but use this function if you want to be
         sure it reached the temperature.
         Input:
-        `tarselfget_temp`(float): Temperature to reach in Celcius.
-        `error`(float): Degree Ceclius error allowed between target and real 
+        `tarselfget_temp`(float): Temperature to reach in Celsius.
+        `error`(float): Degree Celsius error allowed between target and real 
             temperature.
-        `array_size`(int): Size of array to chek if stable temperature plateau is
-            reached. Default = 5
+        `array_size`(int): Size of array to check if stable temperature plateau 
+            is reached. Default = 5
         `sd`(float): Standard deviation, if sd of temperature array drops below 
             threshold value, the temperature has been reached and is stable.
             Default = 0.01
-        `timeout`(float): Number of minutes after which the program timesout. It 
-            will raise and exception if the temperature could not be reached 
-            withing the timeout period if "set_idle" is "True", otherwise it
-            will only raise an Warning.
+        `timeout`(float): Number of minutes after which the program times-out.
+            It will raise and exception if the temperature could not be 
+            reached withing the timeout period if "set_idle" is "True", 
+            otherwise it will only raise an Warning.
         `set_idle`(bool): If True it will set the controller to idle if the 
             target temperature could not be reached within the timeout period.
             Otherwise it will be able to continue provided that there are no
@@ -951,7 +953,7 @@ class TC720():
             if (target_temp-error) < cur_temp < (target_temp+error):
                 self.verboseprint('Within range of target temperature {}C with error {}C'.format( target_temp, error))
                 if counter > array_size:
-                    #Check if slope has plateaud by checking the standard deviation
+                    #Check if slope has plateaus by checking the standard deviation
                     if np.std(bufferT) < sd:
                         self.verboseprint('Temperature stable, slope minimal')
                         break
@@ -976,9 +978,9 @@ class TC720():
             time.sleep(1-execute_time)
 
 
-    #===========================================================================
+    #==========================================================================
     #    Check errors
-    #===========================================================================
+    #==========================================================================
 
     def check_errors(self, set_idle = True, raise_exception = True):
         """
@@ -986,14 +988,14 @@ class TC720():
         Input:
         `set_idle`(bool): If an error is detected the function will set the
             temperature controller to idle.
-        `raise_exception`(bool): If and error is detected and "raise_exception" 
+        `raise_exception`(bool): If and error is detected and "raise_exception"
             is set to "True", it will raise an exception and thereby 
             terminate the running program. If set to "False" it will throw a 
             warning only and the program can continue. Do this with caution!    
         Returns:
         If there are no errors it will return "True". If there is an error 
-        detected it will rais and exception or return "False" if "rais_exception"
-        is set to "False". 
+        detected it will raise and exception or return "False" if
+        "rais_exception" is set to "False". 
         
         """
         #Ask for error
