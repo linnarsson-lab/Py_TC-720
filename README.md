@@ -21,7 +21,7 @@ The TC-720 has a large range of functions and settings. Most have been included 
 There are 3 operational modes which you can find below. Set them using the `my_device.set_mode()` function and give 0, 1 or 2 as input.
 
 ## Mode: 0, One value
-Set the controller to maintain one value. There are 3 options for values that can be set by using the `my_device.set_control_type()` function. Control type: 0, for controling a single temperature. Control type: 1, for controling a specific output level. And, Control type: 2, for use with an external power source (Not yet supported).  
+Set the controller to maintain one value. There are 3 options for values that can be set by using the `my_device.set_control_type()` function. Control type: 0, for controlling a single temperature. Control type: 1, for controlling a specific output level. And, Control type: 2, for use with an external power source (Not yet supported).  
   
 The easiest option is to set one temperature:
 - set the mode to 0: `my_device.set_mode(0)`
