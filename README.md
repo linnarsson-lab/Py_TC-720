@@ -47,7 +47,7 @@ The device has a number of locations which store information. To these location 
 
 To read information use:  
 - Request the information: `my_device.send_message( my_device.message_builder(<location>), write=True )`
-- Read the information: my_device.read_message()
+- Read the information: `my_device.read_message()`
 
 To set new information use:
 - Write a number to a location: `my_device.send_message( <location>, my_device.int_to_hex(<number>), write=True )`
