@@ -195,7 +195,9 @@ class TC720():
         Handles negative numbers.
         
         """
+        print('    {}'.format(response))
         response = int(response[1:5], base=16)
+        print('    {}'.format(response))
         #Check if it is a negative number, if yes, invert it to the correct value.
         if response > 0.5 * (2**16): 
             response = -(2**16 - response)
@@ -403,11 +405,20 @@ class TC720():
 
     def get_temp(self):
         """
-        Read the current temperature.
+        Read the current temperature on sensor 1.
         Returns temperature in degree Celsius with 2 decimals.
         
         """
         self.send_message(self.message_builder('01'))
+        return self.response_to_int(self.read_message()) / 100
+
+    def get_temp2(self):
+        """
+        Read the current temperature on sensor 2.
+        Returns temperature in degree Celsius with 2 decimals.
+        
+        """
+        self.send_message(self.message_builder('04'))
         return self.response_to_int(self.read_message()) / 100
 
     def get_mode(self):
@@ -982,7 +993,7 @@ class TC720():
     #    Check errors
     #==========================================================================
 
-    def check_errors(self, set_idle = True, raise_exception = True):
+    def check_error(self, set_idle = True, raise_exception = True):
         """
         Check if there are errors on the system.  
         Input:
@@ -991,11 +1002,13 @@ class TC720():
         `raise_exception`(bool): If and error is detected and "raise_exception"
             is set to "True", it will raise an exception and thereby 
             terminate the running program. If set to "False" it will throw a 
-            warning only and the program can continue. Do this with caution!    
+            warning only and the program can continue. Do this with caution!
+            Useful if another program does the error handling.
         Returns:
         If there are no errors it will return "True". If there is an error 
-        detected it will raise and exception or return "False" if
-        "rais_exception" is set to "False". 
+        detected it will raise and exception or return a list with False
+        and the error message if "rais_exception" is set to "False". This
+        can then be interpreted by another program.
         
         """
         #Ask for error
@@ -1005,7 +1018,7 @@ class TC720():
           
         if response == '000000':
             self.verboseprint('No errors on temperature controller: {}'.format(self.name))
-            return True
+            return [True, 'No errors on temperature controller: {}'.format(self.name)]
         
         else:
             #Try to set the controller to idle
@@ -1023,5 +1036,5 @@ class TC720():
                 raise Exception('Errors on {}: '.format(self.name) + str(current_errors))
             else:
                 warnings.warn('Errors on {}: '.format(self.name) + str(current_errors))
-                return False
+                return [False, '{}: {}'.format(self.name, current_errors)]
 
