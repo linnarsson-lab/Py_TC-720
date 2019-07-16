@@ -195,9 +195,7 @@ class TC720():
         Handles negative numbers.
         
         """
-        print('    {}'.format(response))
         response = int(response[1:5], base=16)
-        print('    {}'.format(response))
         #Check if it is a negative number, if yes, invert it to the correct value.
         if response > 0.5 * (2**16): 
             response = -(2**16 - response)
@@ -970,7 +968,7 @@ class TC720():
                         break
             if counter >= (timeout*60): #Raise and exception after the timeout period
                 #Make sure there are no errors on the system
-                self.check_errors(set_idle=set_idle, raise_exception=True)
+                self.check_error(set_idle=set_idle, raise_exception=True)
             
                 if set_idle == True:
                     self.set_idle()
@@ -1005,10 +1003,10 @@ class TC720():
             warning only and the program can continue. Do this with caution!
             Useful if another program does the error handling.
         Returns:
-        If there are no errors it will return "True". If there is an error 
-        detected it will raise and exception or return a list with False
-        and the error message if "rais_exception" is set to "False". This
-        can then be interpreted by another program.
+        If there are no errors it will return a list with True and a message.
+        If there is an error detected it will raise and exception or return a
+        list with False and the error message if "rais_exception" is set to
+        "False". This can then be interpreted by another program.
         
         """
         #Ask for error
@@ -1016,14 +1014,19 @@ class TC720():
         response = self.read_message()
         response = '{b:0>6}'.format(b = bin(int(response[1:5], 16))[2:])
           
+        #No errors detected
         if response == '000000':
             self.verboseprint('No errors on temperature controller: {}'.format(self.name))
             return [True, 'No errors on temperature controller: {}'.format(self.name)]
         
+        #Error detected
         else:
+            reset='Device NOT set to idle'
             #Try to set the controller to idle
             if set_idle == True:
                 self.set_idle()
+                reset = 'Device is set to idle.'
+                self.verboseprint(reset)
             
             #Report the error
             error_list = ['Over Current Detected', 'Key press to store value',
@@ -1031,10 +1034,10 @@ class TC720():
                           'Low Alarm 2', 'High Alarm 2', 'Low Alarm 1', 
                           'High Alarm 1',]
             current_errors = [error_list[n] for n,i in enumerate(response) if i == '1']
-            #Check if it should raise an exception or output a warning.
+            #Check if it should raise an exception or give a warning.
             if raise_exception == True:
-                raise Exception('Errors on {}: '.format(self.name) + str(current_errors))
+                raise Exception('Error(s) on {}: {}. {}'.format(self.name, current_errors, reset))
             else:
-                warnings.warn('Errors on {}: '.format(self.name) + str(current_errors))
-                return [False, '{}: {}'.format(self.name, current_errors)]
+                warnings.warn('Error(s) on {}: {}. {}'.format(self.name, current_errors, reset))
+                return [False, 'Error(s) on {}: {}. {}'.format(self.name, current_errors, reset)]
 
